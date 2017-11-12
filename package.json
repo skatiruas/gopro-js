@@ -1,0 +1,35 @@
+{
+  "name": "gopro-js",
+  "version": "0.0.0",
+  "description": "A JavaScript GoPro controller over http",
+  "main": "./build/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel src --presets babel-preset-env --out-dir build",
+    "prepublishOnly": "npm run build",
+    "start": "babel-node --presets babel-preset-env src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skatiruas/gopro-js.git"
+  },
+  "keywords": [
+    "GoPro",
+    "camera",
+    "controller",
+    "http",
+    "javascript",
+    "api",
+    "wrapper"
+  ],
+  "author": "Tiago Ruas <skatiruas@gmail.com> (skatiruas.github.io)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/skatiruas/gopro-js/issues"
+  },
+  "homepage": "https://github.com/skatiruas/gopro-js#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1"
+  }
+}
