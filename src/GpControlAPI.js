@@ -2,6 +2,21 @@ import axios from 'axios'
 
 const str = (str, prefix = '') => str ? `${prefix}${str}` : ''
 
+const CMD = {
+  mode: {
+    video: [0, 0],
+    timelapseVideo: [0, 1],
+    videoPhoto: [0, 2],
+    looping: [0, 3],
+    still: [1, 0],
+    continuous: [1, 1],
+    night: [1, 2],
+    burst: [2, 0],
+    timelapse: [2, 1],
+    nightlapse: [2, 2]
+  }
+}
+
 export default class GpControlAPI {
   constructor({ ip, mac } = {}) {
     this.ip = ip || '10.5.5.9'
@@ -16,7 +31,9 @@ export default class GpControlAPI {
   _command(path) { return this.request(`command${str(path, '/')}`)}
 
   status() { return this.request('status') }
-  mode(mode, submode = 0) {
+
+  mode(arg) {
+    const [mode, submode] = CMD['mode'][arg] || [0, 0]
     return this._command(`sub_mode?mode=${mode}&sub_mode=${submode}`)
   }
 }

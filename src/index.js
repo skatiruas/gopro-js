@@ -3,7 +3,7 @@ import GpControlAPI from './GpControlAPI'
 const REGEX = {
   gpControl: /HERO4|HERO5|HERO\+/,
   auth: /HERO2|HERO3/,
-  interface: /^status|mode|$/
+  interface: /^status|mode$/
 }
 
 export default class GoPro {
@@ -38,7 +38,7 @@ export default class GoPro {
     return api.request().then(data => {
       this.apiProps['gpControlResponse'] = data
       const { model_name } = data.info
-      if (!model_name.match(REGEX.gpControl)) api = null
+      if (!model_name.match(REGEX.gpControl)) api = -1
       this._setAPI(api)
     }).catch(() => {
       // Handle other types later
@@ -55,11 +55,14 @@ export default class GoPro {
             const retry = () => this.api[property].apply(this.api, args)
             return this._discover().then(retry)
           } else if (api === null) return Promise.reject('GoPro not found.')
+          else if (api === -1) return Promise.reject('Unsupported GoPro.')
           else return Promise.reject(`${property} not defined for current API.`)
         }
       }
     })
   }
+
+  delay(t) { return new Promise(resolve => setTimeout(resolve, t)) }
 
 /* === Interface ===
  * status()
@@ -68,4 +71,6 @@ export default class GoPro {
 }
 
 const x = new GoPro()
-x.mode(2).then(x.status).then(r => console.log(r))
+x.mode('video')
+  .then(() => x.delay(5000))
+  .then(() => x.mode('burst'))
