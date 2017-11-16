@@ -3,11 +3,12 @@ import GpControlAPI from './GpControlAPI'
 const REGEX = {
   gpControl: /HERO4|HERO5|HERO\+/,
   auth: /HERO2|HERO3/,
-  interface: /^status|mode$/
+  interface: /^delay|status|mode$/
 }
 
 export default class GoPro {
   constructor(props = {}) {
+    this._chain = null
     this.apiProps = {
       ip: props.ip || '10.5.5.9',
       mac: props.mac || 'AA:BB:CC:DD:EE:FF',
@@ -15,16 +16,25 @@ export default class GoPro {
     this._setAPI(this._selectAPI(props.model))
 
     // Delegate functions to API
-    return new Proxy(this, {
+    const proxy = new Proxy(this, {
       get: (target, property) => {
-        if (target[property] !== undefined) return target[property]
+        let promise = target[property]
+        let thisArg = target
         return (...args) => {
           if (props.strict && !property.match(REGEX.interface)) {
-            return Promise.reject(`${property} not allowed on this interface.`)
-          } else return target.api[property].apply(target.api, args)
+            promise = () => Promise.reject(`${property} not allowed on this interface.`)
+          } else if (promise === undefined) {
+            promise = target.api[property]
+            thisArg = target.api
+          }
+
+          if (!this._chain) this._chain = promise.apply(thisArg, args)
+          else this._chain = this._chain.then(() => promise.apply(thisArg, args))
+          return proxy
         }
       }
     })
+    return proxy
   }
 
   _selectAPI(model) {
@@ -71,6 +81,4 @@ export default class GoPro {
 }
 
 const x = new GoPro()
-x.mode('video')
-  .then(() => x.delay(5000))
-  .then(() => x.mode('burst'))
+x.mode('video').delay(2000).mode('burst')
