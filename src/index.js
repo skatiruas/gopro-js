@@ -8,7 +8,7 @@ const REGEX = {
 
 export default class GoPro {
   constructor(props = {}) {
-    this._chain = null
+    this._promise = props.promise || Promise.resolve()
     this.apiProps = {
       ip: props.ip || '10.5.5.9',
       mac: props.mac || 'AA:BB:CC:DD:EE:FF',
@@ -16,25 +16,22 @@ export default class GoPro {
     this._setAPI(this._selectAPI(props.model))
 
     // Delegate functions to API
-    const proxy = new Proxy(this, {
+    return new Proxy(this, {
       get: (target, property) => {
-        let promise = target[property]
-        let thisArg = target
+        let resolve = target[property]
+        let reference = target
         return (...args) => {
           if (props.strict && !property.match(REGEX.interface)) {
-            promise = () => Promise.reject(`${property} not allowed on this interface.`)
-          } else if (promise === undefined) {
-            promise = target.api[property]
-            thisArg = target.api
-          }
+            resolve = () => Promise.reject(`${property} not allowed on this interface.`)
+          } else if (!resolve) [resolve, reference] = [target.api[property], target.api]
 
-          if (!this._chain) this._chain = promise.apply(thisArg, args)
-          else this._chain = this._chain.then(() => promise.apply(thisArg, args))
-          return proxy
+          let promise = null
+          if (property.match(/^catch|then$/)) promise = this._promise[property](...args)
+          else promise = this._promise.then(() => resolve.apply(reference, args))
+          return new GoPro(Object.assign(props, { promise }))
         }
       }
     })
-    return proxy
   }
 
   _selectAPI(model) {
@@ -80,5 +77,9 @@ export default class GoPro {
  */
 }
 
-const x = new GoPro()
-x.mode('video').delay(2000).mode('burst')
+const gp = new GoPro()
+gp.mode('video')
+  .delay(1000)
+  .then(() => gp.mode('burst'))
+  .dummy()
+  .catch(() => gp.mode('photo'))
