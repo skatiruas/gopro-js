@@ -18,14 +18,12 @@ export default class GoPro {
     // Delegate functions to API
     return new Proxy(this, {
       get: (target, property) => {
-        let resolve = target[property]
-        let reference = target
+        let [resolve, reference, promise] = [target[property], target, null]
         return (...args) => {
           if (props.strict && !property.match(REGEX.interface)) {
             resolve = () => Promise.reject(`${property} not allowed on this interface.`)
           } else if (!resolve) [resolve, reference] = [target.api[property], target.api]
 
-          let promise = null
           if (property.match(/^catch|then$/)) promise = this._promise[property](...args)
           else promise = this._promise.then(() => resolve.apply(reference, args))
           return new GoPro(Object.assign(props, { promise }))
@@ -61,9 +59,12 @@ export default class GoPro {
           if (api === undefined) {
             const retry = () => this.api[property].apply(this.api, args)
             return this._discover().then(retry)
-          } else if (api === null) return Promise.reject('GoPro not found.')
-          else if (api === -1) return Promise.reject('Unsupported GoPro.')
-          else return Promise.reject(`${property} not defined for current API.`)
+          } else {
+            let error = `${property} not defined for current API.`
+            if (api === null) error = 'GoPro not found.'
+            else if (api === -1) error = 'Unsupported GoPro.'
+            return Promise.reject(error)
+          }
         }
       }
     })
@@ -76,10 +77,3 @@ export default class GoPro {
  * mode(mode, submode)
  */
 }
-
-const gp = new GoPro()
-gp.mode('video')
-  .delay(1000)
-  .then(() => gp.mode('burst'))
-  .dummy()
-  .catch(() => gp.mode('photo'))
