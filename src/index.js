@@ -76,7 +76,7 @@ export default class GoPro {
  * set(path:string)
  * status(path:string)
  * mode(mode:string, submode:string)
- * shutter(start:boolean, delay:integer)
+ * shutter(delay:integer, duration:integer)
  * powerOff()
  * listMedia()
  */
