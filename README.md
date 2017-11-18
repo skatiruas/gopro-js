@@ -31,4 +31,6 @@ gp.mode('video') // Begin chaining (without then)
   .then(() => gp.mode('burst')) // Chaining with then
   .dummy() // Calls and unexistent method, throwing an error
   .catch(() => gp.mode('still')) // Catches the error and fallbacks to other mode
+  .status('System', 'SYSTEM_BUSY').then(s => console.log(s)) // Check camera status
+  .shutter(true, 1000) // Activate shutter after 1 second delay
 ```

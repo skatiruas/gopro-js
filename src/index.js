@@ -73,7 +73,8 @@ export default class GoPro {
   delay(t) { return new Promise(resolve => setTimeout(resolve, t)) }
 
 /* === Interface ===
- * status()
- * mode(mode, submode)
+ * status(type:string, value:string)
+ * mode(mode:string, submode:string)
+ * shutter(start:boolean, delay:integer)
  */
 }
