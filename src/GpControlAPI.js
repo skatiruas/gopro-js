@@ -62,4 +62,19 @@ export default class GpControlAPI {
   powerOff() { return this._command('system/sleep') }
 
   listMedia() { return this.request('', { endpoint: 'gpMediaList', port: 8080 }) }
+
+  deleteLast(files = 1) {
+    let promise = Promise.resolve()
+    for (let i = 0; i < files; i += 1) {
+      promise = promise.then(() => this._command('storage/delete/last'))
+    }
+    return promise
+  }
+
+  deleteFile(folder, file) {
+    return this._command(`storage/delete?p=${folder}/${file}`)
+  }
+
+  deleteAll() { return this._command('storage/delete/all') }
+
 }

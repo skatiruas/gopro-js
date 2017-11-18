@@ -38,5 +38,6 @@ gp.mode('VIDEO') // Begin chaining (without then)
   .shutter(2000) // Activate shutter after 2 seconds delay
   .set('Photo.Resolution.R12WIDE') // Apply some setting
   .listMedia().then(m => console.log(m)) // Get JSON of media
+  .deleteLast(2) // Deletes the last 2 files
   .powerOff() // Power Off
 ```

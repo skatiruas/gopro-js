@@ -1,3 +1,7 @@
+export const multilineRegExp = (regs, options) => {
+  return new RegExp(regs.map(reg => reg.source).join(''), options)
+}
+
 export const prefixedStr = (str, prefix = '') => str ? `${prefix}${str}` : ''
 
 export const screamingSnakeCase = s => {

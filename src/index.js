@@ -1,9 +1,11 @@
 import GpControlAPI from './GpControlAPI'
+import { multilineRegExp } from './utils'
 
 const REGEX = {
   gpControl: /HERO4|HERO5|HERO\+/,
   auth: /HERO2|HERO3/,
-  interface: /^delay|status|mode|set|shutter|powerOff|listMedia$/
+  interface: multilineRegExp([/^delay|status|mode|set|shutter|powerOff|listMedia/,
+    /|deleteAll|deleteLast|deleteFile$/])
 }
 
 export default class GoPro {
@@ -79,5 +81,8 @@ export default class GoPro {
  * shutter(delay:integer, duration:integer)
  * powerOff()
  * listMedia()
+ * deleteLast(number:integer)
+ * deleteFile(folder:string, file:string)
+ * deleteAll()
  */
 }
