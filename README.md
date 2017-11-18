@@ -31,6 +31,10 @@ gp.mode('VIDEO') // Begin chaining (without then)
   .then(() => gp.mode('MULTISHOT', 'BURST')) // Chaining with then
   .dummy() // Calls and unexistent method, throwing an error
   .catch(() => gp.mode('PHOTO', 'SINGLE')) // Catches the error and fallbacks to other mode
-  .status('System', 'BUSY').then(s => console.log(s)) // Check camera status
+  .set('Photo.Resolution.R12WIDE') // Apply some setting
+  .status('System.BUSY') // Check camera status
+  .then(b => console.log(`Camera is ${b ? 'BUSY' : 'OK'}`)) // Check previous result
   .shutter(true, 5000) // Activate shutter after 5 seconds delay
+  .listMedia().then(m => console.log(m)) // Get JSON of media
+  .powerOff() // Power Off
 ```

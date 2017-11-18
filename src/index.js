@@ -3,7 +3,7 @@ import GpControlAPI from './GpControlAPI'
 const REGEX = {
   gpControl: /HERO4|HERO5|HERO\+/,
   auth: /HERO2|HERO3/,
-  interface: /^delay|status|mode$/
+  interface: /^delay|status|mode|set|shutter|powerOff|listMedia$/
 }
 
 export default class GoPro {
@@ -73,8 +73,11 @@ export default class GoPro {
   delay(t) { return new Promise(resolve => setTimeout(resolve, t)) }
 
 /* === Interface ===
- * status(type:string, value:string)
+ * set(path:string)
+ * status(path:string)
  * mode(mode:string, submode:string)
  * shutter(start:boolean, delay:integer)
+ * powerOff()
+ * listMedia()
  */
 }
