@@ -26,11 +26,11 @@ This package is Promise based, but I've simplified the usage, giving the opportu
 import gp from 'gopro-js'
 
 const gp = new GoPro() // Instantiate
-gp.mode('video') // Begin chaining (without then)
+gp.mode('VIDEO') // Begin chaining (without then)
   .delay(1000) // Delays the next method
-  .then(() => gp.mode('burst')) // Chaining with then
+  .then(() => gp.mode('MULTISHOT', 'BURST')) // Chaining with then
   .dummy() // Calls and unexistent method, throwing an error
-  .catch(() => gp.mode('still')) // Catches the error and fallbacks to other mode
-  .status('System', 'SYSTEM_BUSY').then(s => console.log(s)) // Check camera status
-  .shutter(true, 1000) // Activate shutter after 1 second delay
+  .catch(() => gp.mode('PHOTO', 'SINGLE')) // Catches the error and fallbacks to other mode
+  .status('System', 'BUSY').then(s => console.log(s)) // Check camera status
+  .shutter(true, 5000) // Activate shutter after 5 seconds delay
 ```

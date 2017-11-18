@@ -37,8 +37,9 @@ export default class GpControlAPI {
   status(type, value) {
     return this.request('status').then(s => {
       if(!type || !value) return Promise.resolve(s)
-      const param = this._valueFinder('Status', type, value)
-      if (param !== undefined) return Promise.resolve(s.status[param])
+      let result = this._valueFinder('Status', type, value)
+      result = result && s.status[result]
+      if(result !== undefined) return Promise.resolve(result)
       else return Promise.reject('Invalid status.')
     })
   }
