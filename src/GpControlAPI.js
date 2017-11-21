@@ -1,4 +1,5 @@
-var dgram = (typeof window === 'undefined') && require('dgram')
+var tryRequire = require('try-require')
+var dgram = tryRequire('dgram')
 import axios from 'axios'
 import mac from 'mac-address'
 import constants from './GpControlValues'
