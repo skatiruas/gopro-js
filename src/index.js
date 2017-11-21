@@ -4,7 +4,7 @@ import { multilineRegExp } from './utils'
 const REGEX = {
   gpControl: /HERO4|HERO5|HERO\+/,
   auth: /HERO2|HERO3/,
-  interface: multilineRegExp([/^delay|status|mode|set|shutter|powerOff|listMedia/,
+  interface: multilineRegExp([/^delay|status|mode|set|shutter|powerOff|powerOn|listMedia/,
     /|deleteAll|deleteLast|deleteFile$/])
 }
 
@@ -84,6 +84,7 @@ export default class GoPro {
  * mode(mode:string, submode:string)
  * shutter(delay:integer, duration:integer)
  * powerOff()
+ * powerOn()
  * listMedia()
  * deleteLast(number:integer)
  * deleteFile(folder:string, file:string)

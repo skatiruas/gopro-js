@@ -1,5 +1,5 @@
+var dgram = (typeof window === 'undefined') && require('dgram')
 import axios from 'axios'
-import dgram from 'dgram'
 import mac from 'mac-address'
 import constants from './GpControlValues'
 import { prefixedStr, valueFinder } from './utils'
@@ -10,7 +10,7 @@ const RETRY_DELAY = 200
 export default class GpControlAPI {
   constructor({ ip, mac } = {}) {
     this.ip = ip || '10.5.5.9'
-    this.mac = mac || 'AA:BB:CC:DD:EE:FF'
+    this.mac = mac
   }
 
   request(path = '', { port = '', endpoint = 'gpControl', busyCheck = true, retries = RETRIES } = {}) {
@@ -97,6 +97,7 @@ export default class GpControlAPI {
   }
 
   powerOn() {
+    if (!dgram) return Promise.reject('powerOn not supported on browser yet.')
     return this._discoverMac().then(() => {
       let [message, size] = [new Buffer(102), this.mac.length]
       for (let i = 0; i < 6; i += 1) message[i] = 0xff
