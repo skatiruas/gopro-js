@@ -34,3 +34,5 @@ gp.mode('VIDEO') // Begin chaining (without then)
   })
   .deleteLast(2) // Deletes the last 2 files
   .powerOff() // Power Off
+  .delay(5000)
+  .powerOn() // Power On
