@@ -8,73 +8,77 @@ const REGEX = {
     /|deleteAll|deleteLast|deleteFile$/])
 }
 
+const APIs = {
+  gpControl: GpControlAPI,
+}
+
 export default class GoPro {
   constructor(props = {}) {
-    this._promise = props.promise || Promise.resolve()
+    this.lastResult = props.lastResult
     this.apiProps = {
       ip: props.ip || '10.5.5.9',
-      mac: props.mac || 'AA:BB:CC:DD:EE:FF',
+      mac: props.mac,
+      model: props.model
     }
-    this._setAPI(this._selectAPI(props.model))
+    this._promise = this._discover().then(api => {
+      if (api === null) return Promise.reject('GoPro not found.')
+      else if (api === -1) return Promise.reject('Unsupported GoPro.')
+      else this.api = new APIs[api](this.apiProps)
+    })
 
     // Delegate functions to API
-    return new Proxy(this, {
+    const proxy = new Proxy(this, {
       get: (target, property) => {
-        let [resolve, reference, promise] = [target[property], target, null]
+        const match = property.match(/^catch|then$/)
+        if(target[property] !== undefined && !match) return target[property]
         return (...args) => {
-          if (props.strict && !property.match(REGEX.interface)) {
-            resolve = () => Promise.reject(`${property} not allowed on this interface.`)
-          } else if (!resolve) [resolve, reference] = [target.api[property], target.api]
-
-          if (property.match(/^catch|then$/)) promise = this._promise[property](...args)
-          else promise = this._promise.then(() => resolve.apply(reference, args))
-          return new GoPro(Object.assign(props, { promise }))
+          if (match) {
+            const newProps = (lastResult) => Object.assign(props, this.apiProps, { lastResult })
+            const instance = (lastResult, index) => {
+              if (!args[index]) return Promise.reject(lastResult)
+              else return args[index](new GoPro(newProps(lastResult)))
+            }
+            this._promise = this._promise[property](v => instance(v, 0), e => instance(e, 1))
+          } else {
+            const resolve = lastResult => {
+              this.lastResult = lastResult
+              if (props.strict && !property.match(REGEX.interface)) {
+                return Promise.reject(`${property} not allowed on this interface.`)
+              } else if (target.api[property]) return target.api[property].apply(target.api, args)
+              else return Promise.reject(`${property} not defined for current API.`)
+            }
+            this._promise = this._promise.then(resolve)
+          }
+          return proxy
         }
       }
     })
+    return proxy
   }
 
   _selectAPI(model) {
-    return (model && (
-      (model.match(REGEX.gpControl) && new GpControlAPI(this.apiProps)) ||
-      (model.match(REGEX.auth) && null))) || undefined
+    return (model && ((model.match(REGEX.gpControl) && 'gpControl') ||
+                      (model.match(REGEX.auth) && -1))) || undefined
   }
 
   _discover() {
+    const selection = this._selectAPI(this.apiProps.model)
+    if (selection !== undefined) return Promise.resolve(selection)
     let api = new GpControlAPI(this.apiProps)
     return api.request().then(data => {
-      this.apiProps['gpControlResponse'] = data
       const { model_name } = data.info
-      if (!model_name.match(REGEX.gpControl)) api = -1
-      this._setAPI(api)
+      this.apiProps.model = model_name
+      this.apiProps['gpControlResponse'] = data
+      if (!model_name.match(REGEX.gpControl)) return -1
+      return 'gpControl'
     }).catch(() => {
       // Handle other types later
-      this._setAPI(null)
+      return null
     })
   }
-
-  _setAPI(api) {
-    this.api = new Proxy(api || {}, {
-      get: (target, property) => {
-        if (target[property] !== undefined) return target[property]
-        return (...args) => {
-          if (api === undefined) {
-            const retry = () => this.api[property].apply(this.api, args)
-            return this._discover().then(retry)
-          } else {
-            let error = `${property} not defined for current API.`
-            if (api === null) error = 'GoPro not found.'
-            else if (api === -1) error = 'Unsupported GoPro.'
-            return Promise.reject(error)
-          }
-        }
-      }
-    })
-  }
-
-  delay(t) { return new Promise(resolve => setTimeout(resolve, t)) }
 
 /* === Interface ===
+ * delay(milliseconds:integer)
  * set(path:string)
  * status(path:string)
  * mode(mode:string, submode:string)

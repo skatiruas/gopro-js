@@ -1,4 +1,6 @@
 import axios from 'axios'
+import dgram from 'dgram'
+import mac from 'mac-address'
 import constants from './GpControlValues'
 import { prefixedStr, valueFinder } from './utils'
 
@@ -77,4 +79,37 @@ export default class GpControlAPI {
 
   deleteAll() { return this._command('storage/delete/all') }
 
+  _bufferMac(macAddress) {
+    if (macAddress instanceof Buffer && macAddress.length === mac.LENGTH) this.mac = macAddress
+    else if (macAddress instanceof Array) {
+      this.mac = macAddress.length === mac.LENGTH && Buffer.from(macAddress)
+    } else if (macAddress) {
+      this.mac = mac.toBuffer(macAddress.replace(/^(..)(..)(..)(..)(..)(..)$/, '$1:$2:$3:$4:$5:$6'))
+    }
+    return this.mac
+  }
+
+  _discoverMac() {
+    if (this.mac) return Promise.resolve(this.mac)
+    this.request().then(data => {
+      if (!this._bufferMac(data.info.ap_mac)) return Promise.reject('Invalid MAC Address.')
+    })
+  }
+
+  powerOn() {
+    return this._discoverMac().then(() => {
+      let [message, size] = [new Buffer(102), this.mac.length]
+      for (let i = 0; i < 6; i += 1) message[i] = 0xff
+      for (let j = 0; j < 16; j += 1) {
+        const c = 6 + j * size
+        for (let k = 0; k < size; k += 1) message[c + k] = this.mac[k]
+      }
+
+      let socket = dgram.createSocket('udp4')
+      const send = (port, callback = () => socket.close()) => {
+        return socket.send(message, 0, message.length, port, this.ip, callback)
+      }
+      send(9, () => send(7))
+    })
+  }
 }
