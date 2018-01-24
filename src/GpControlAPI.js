@@ -1,26 +1,41 @@
-var tryRequire = require('try-require')
-var dgram = tryRequire('dgram')
 import axios from 'axios'
 import mac from 'mac-address'
 import constants from './GpControlValues'
 import { prefixedStr, valueFinder } from './utils'
+import { PromiseError, NotFoundError } from './errors'
 
+const EMPTY = 'empty'
 const RETRIES = 10
 const RETRY_DELAY = 200
+let dgram
+try {
+  dgram = require('dgram')
+} catch(_) {
+  dgram = EMPTY // Browser does not support dgram
+}
 
 export default class GpControlAPI {
   constructor({ ip, mac } = {}) {
     this.ip = ip || '10.5.5.9'
-    this.mac = mac
+    this._bufferMac(mac)
+  }
+
+  discover() {
+    return this.request().then(({ info }) => ({
+      model: info.model_name,
+      mac: this._bufferMac(info.ap_mac)
+    }))
   }
 
   request(path = '', { port = '', endpoint = 'gpControl', busyCheck = true, retries = RETRIES } = {}) {
     const url = `http://${this.ip}${prefixedStr(port, ':')}/gp/${endpoint}${prefixedStr(path, '/')}`
-    const promise = () => axios.get(url, { timeout: 5000 }).then(r => r.data)
+    const promise = () => axios.get(url, { timeout: 5000 }).catch(() => {
+      return new NotFoundError
+    }).then(r => r.data)
     const retry = () => this.request(path, { endpoint, port, retries: retries - 1, busyCheck })
 
     if (!busyCheck) return promise()
-    else if (retries === 0) return Promise.reject('Camera is Busy.')
+    else if (retries === 0) return new PromiseError('Camera is Busy.')
     else return this.status('System.BUSY').then(busy => {
       return busy ? this.delay(RETRY_DELAY).then(retry).then(promise) : promise()
     })
@@ -36,7 +51,7 @@ export default class GpControlAPI {
       let { value } = valueFinder(constants, `Status.${path}`)
       value = value && s.status[value]
       if(value !== undefined) return Promise.resolve(value)
-      else return Promise.reject(`Invalid 'Status.${path}'`)
+      else return new PromiseError(`Invalid 'Status.${path}'`)
     })
   }
 
@@ -45,14 +60,14 @@ export default class GpControlAPI {
     if (m !== undefined && !submode) return this._command(`mode?p=${m}`)
     const s = valueFinder(constants, `Mode.${mode}.SubMode.${submode}`).value
     if ((m && s) !== undefined) return this._command(`sub_mode?mode=${m}&sub_mode=${s || 0}`)
-    return Promise.reject(`Invalid 'Mode.${mode}' or 'Mode.${mode}.SubMode.${submode}'`)
+    return new PromiseError(`Invalid 'Mode.${mode}' or 'Mode.${mode}.SubMode.${submode}'`)
   }
 
   set(path) {
     const fullPath = `Mode.${path}`
     const { value, setting } = valueFinder(constants, fullPath)
     if((value && setting) !== undefined) return this.request(`setting/${setting}/${value}`)
-    else return Promise.reject(`Invalid setting '${fullPath}'`)
+    else return new PromiseError(`Invalid setting '${fullPath}'`)
   }
 
   shutter(delay = 0, duration) {
@@ -90,16 +105,11 @@ export default class GpControlAPI {
     return this.mac
   }
 
-  _discoverMac() {
-    if (this.mac) return Promise.resolve(this.mac)
-    this.request().then(data => {
-      if (!this._bufferMac(data.info.ap_mac)) return Promise.reject('Invalid MAC Address.')
-    })
-  }
-
   powerOn() {
-    if (!dgram) return Promise.reject('powerOn not supported on browser yet.')
-    return this._discoverMac().then(() => {
+    if (dgram === EMPTY) return new PromiseError('powerOn not supported on browser yet.')
+    else if (!this.mac) return new PromiseError('Invalid MAC Address.')
+
+    return Promise.resolve().then(() => {
       let [message, size] = [new Buffer(102), this.mac.length]
       for (let i = 0; i < 6; i += 1) message[i] = 0xff
       for (let j = 0; j < 16; j += 1) {

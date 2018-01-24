@@ -1,5 +1,11 @@
 import GpControlAPI from './GpControlAPI'
 import { multilineRegExp } from './utils'
+import {
+  NotFoundError,
+  UnsupportedError,
+  ForbiddenMethodError,
+  UndefinedMethodError,
+} from './errors'
 
 const REGEX = {
   gpControl: /HERO4|HERO5|HERO\+/,
@@ -21,8 +27,8 @@ export default class GoPro {
       model: props.model
     }
     this._promise = this._discover().then(api => {
-      if (api === null) return Promise.reject('GoPro not found.')
-      else if (api === -1) return Promise.reject('Unsupported GoPro.')
+      if (api === null) return new NotFoundError
+      else if (api === -1) return new UnsupportedError
       else this.api = new APIs[api](this.apiProps)
     })
 
@@ -30,7 +36,7 @@ export default class GoPro {
     const proxy = new Proxy(this, {
       get: (target, property) => {
         const match = property.match(/^catch|then$/)
-        if(target[property] !== undefined && !match) return target[property]
+        if (target[property] !== undefined && !match) return target[property]
         return (...args) => {
           if (match) {
             const newProps = (lastResult) => Object.assign(props, this.apiProps, { lastResult })
@@ -42,10 +48,11 @@ export default class GoPro {
           } else {
             const resolve = lastResult => {
               this.lastResult = lastResult
-              if (props.strict && !property.match(REGEX.interface)) {
-                return Promise.reject(`${property} not allowed on this interface.`)
+              if (target.api === undefined) return new NotFoundError
+              else if (props.strict && !property.match(REGEX.interface)) {
+                return new ForbiddenMethodError(property)
               } else if (target.api[property]) return target.api[property].apply(target.api, args)
-              else return Promise.reject(`${property} not defined for current API.`)
+              else return new UndefinedMethodError(property)
             }
             this._promise = this._promise.then(resolve)
           }
@@ -65,11 +72,9 @@ export default class GoPro {
     const selection = this._selectAPI(this.apiProps.model)
     if (selection !== undefined) return Promise.resolve(selection)
     let api = new GpControlAPI(this.apiProps)
-    return api.request().then(data => {
-      const { model_name } = data.info
-      this.apiProps.model = model_name
-      this.apiProps['gpControlResponse'] = data
-      if (!model_name.match(REGEX.gpControl)) return -1
+    return api.discover().then((data) => {
+      if (!data.model.match(REGEX.gpControl)) return -1
+      Object.assign(this.apiProps, data)
       return 'gpControl'
     }).catch(() => {
       // Handle other types later
@@ -78,6 +83,7 @@ export default class GoPro {
   }
 
 /* === Interface ===
+ * discover()
  * delay(milliseconds:integer)
  * set(path:string)
  * status(path:string)

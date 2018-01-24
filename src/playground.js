@@ -17,7 +17,7 @@ gp.mode('VIDEO') // Begin chaining (without then)
   })
   .dummy() // Calls and unexistent method, throwing an error
   .catch(instance => {
-    console.log(instance.lastResult) // dummy not defined for current API.
+    console.log(instance.lastResult.message) // dummy not defined for current API.
     // Catches the error and changes to other mode
     instance.mode('PHOTO', 'SINGLE')
   })

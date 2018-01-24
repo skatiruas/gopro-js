@@ -37,7 +37,6 @@
   "dependencies": {
     "axios": "^0.17.1",
     "dgram": "^1.0.1",
-    "mac-address": "^0.3.0",
-    "try-require": "^1.2.1"
+    "mac-address": "^0.3.0"
   }
 }

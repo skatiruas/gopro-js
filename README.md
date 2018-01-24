@@ -24,7 +24,7 @@ This package is Promise based, with a simplified chain workflow without the expl
 Attention when using **then** or **catch**: The value returned is a new GoPro instance, with the last promise result attached to lastResult property!
 
 ```javascript
-import GoPro from 'gopro-js'
+import GoPro from 'gopro-js' // or const GoPro = require('gopro-js').default
 
 const gp = new GoPro() // Instantiate
 gp.mode('VIDEO') // Begin chaining (without then)
@@ -43,7 +43,7 @@ gp.mode('VIDEO') // Begin chaining (without then)
   })
   .dummy() // Calls and unexistent method, throwing an error
   .catch(instance => {
-    console.log(instance.lastResult) // dummy not defined for current API.
+    console.log(instance.lastResult.message) // dummy not defined for current API.
     // Catches the error and changes to other mode
     instance.mode('PHOTO', 'SINGLE')
   })
